@@ -1,86 +1,78 @@
-# Trade
-# 📈 Binance Futures Trading Bot (Testnet)
+import logging
+import sys
+import time
+from binance.client import Client
+from binance.enums import *
+from binance.exceptions import BinanceAPIException
 
-A simplified Python trading bot to place **Market** and **Limit** orders on the **Binance Futures Testnet** using the official Binance API. Designed for beginners who want to learn algorithmic trading and automation with clean, structured Python code.
+# Configure logging
+logging.basicConfig(filename='trading_bot.log', level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
----
+class BasicBot:
+    def __init__(self, api_key, api_secret, testnet=True):
+        if testnet:
+            self.base_url = 'https://testnet.binancefuture.com'
+        else:
+            self.base_url = 'https://fapi.binance.com'
 
-## ⚙️ Features
+        self.client = Client(api_key, api_secret)
+        self.client.FUTURES_URL = self.base_url
 
-- ✅ Connects securely to Binance **Futures Testnet**
-- ✅ Place **Market** and **Limit** orders
-- ✅ Supports both **Buy** and **Sell** trades
-- ✅ Validates user input from command-line interface (CLI)
-- ✅ Logs all API requests, responses, and errors
-- ✅ Clear structure for reusability and easy extension
+    def place_order(self, symbol, side, order_type, quantity, price=None):
+        try:
+            if order_type == ORDER_TYPE_MARKET:
+                order = self.client.futures_create_order(
+                    symbol=symbol,
+                    side=side,
+                    type=ORDER_TYPE_MARKET,
+                    quantity=quantity
+                )
+            elif order_type == ORDER_TYPE_LIMIT:
+                order = self.client.futures_create_order(
+                    symbol=symbol,
+                    side=side,
+                    type=ORDER_TYPE_LIMIT,
+                    timeInForce=TIME_IN_FORCE_GTC,
+                    quantity=quantity,
+                    price=price
+                )
+            else:
+                raise ValueError("Unsupported order type")
 
-## 🚀 Getting Started
+            logging.info(f"Order placed: {order}")
+            return order
 
-### 1. Clone the Repository
+        except BinanceAPIException as e:
+            logging.error(f"Binance API Exception: {e}")
+            return None
+        except Exception as e:
+            logging.error(f"General Exception: {e}")
+            return None
 
-```bash
-git clone https://github.com/your-username/TradeBot.git
-cd TradeBot
-2. Set Up a Virtual Environment (Recommended)
-python -m venv venv
-source venv/bin/activate  # For Windows: venv\Scripts\activate
-3. Install Requirements
-pip install -r requirements.txt
-🔑 Binance Testnet API Setup
 
-Go to Binance Futures Testnet
-Create an account or log in
-Generate:
-API Key
-Secret Key
-Enable Futures access for your API keys
-Use this testnet base URL in your code:
+def main():
+    api_key = input("Enter your Binance API Key: ")
+    api_secret = input("Enter your Binance API Secret: ")
+    bot = BasicBot(api_key, api_secret)
 
-https://testnet.binancefuture.com
-🧾 Sample Usage
+    symbol = input("Enter trading symbol (e.g., BTCUSDT): ").upper()
+    side = input("Buy or Sell: ").upper()
+    order_type = input("Order type (MARKET/LIMIT): ").upper()
+    quantity = float(input("Enter quantity: "))
 
-Run your bot using:
+    price = None
+    if order_type == 'LIMIT':
+        price = input("Enter limit price: ")
 
-python trade_bot.py
-You'll be prompted to enter:
+    order = bot.place_order(symbol=symbol, side=side, order_type=order_type, quantity=quantity, price=price)
 
-API Key and Secret
-Trading Symbol (e.g., BTCUSDT)
-Order Type (MARKET / LIMIT)
-Order Side (BUY / SELL)
-Quantity
-Price (for LIMIT orders only)
-🧰 Project Structure
+    if order:
+        print("Order executed successfully:")
+        print(order)
+    else:
+        print("Order failed. Check logs for details.")
 
-.
-├── trade_bot.py          # Main Python script
-├── requirements.txt      # Python dependencies
-├── trading_bot.log       # Log file for trade history & errors
-└── README.md             # This guide
-📦 Requirements
 
-python-binance==1.0.17
-aiohttp
-cryptography
-cchardet
-Install with:
-
-pip install -r requirements.txt
-📝 Logging
-
-All API interactions and errors are logged in:
-
-trading_bot.log
-You can check this file to review trade history or diagnose issues.
-
-📌 Future Improvements
-
- Add support for Stop-Limit, OCO orders
- Integrate Telegram/email alerts
- Build a basic UI using Streamlit or Flask
- Add backtesting support using historical data
-👨‍💻 Author
-
-Made with ❤️ by Shivam Mehta
-📍 Gurugram, India
-🔗 https://www.linkedin.com/in/shivam-mehta-815920318/
+if __name__ == '__main__':
+    main()
